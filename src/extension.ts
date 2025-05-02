@@ -3,22 +3,22 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { exec } from 'child_process';
 
-// 全局状态管理
+// Global state management
 const anchorWatchers = new Map<string, vscode.FileSystemWatcher>();
-// 修改：重命名同步监视器集合
+// Modified: Renamed PDF sync watcher collection
 const logSyncWatchers = new Map<string, vscode.FileSystemWatcher>();
 let extensionContext: vscode.ExtensionContext;
 
-// 配置参数
+// Configuration parameters
 const config = {
-	pythonPath: 'python', // 可扩展为从配置读取
+	pythonPath: 'python', // Can be extended to read from config
 	dpi: 300,
 	maxRetries: 3,
 	cooldown: 1000,
 	logCheckDelay: 500
 };
 
-// 新增：获取日志文件路径
+// New: Get log file path
 function getLogFilePath(texPath: string): string {
 	return texPath.replace(/\.tex$/i, '.log');
 }
@@ -26,7 +26,7 @@ function getLogFilePath(texPath: string): string {
 export function activate(context: vscode.ExtensionContext) {
 	extensionContext = context;
 
-	// 初始化锚点监控
+	// Initialize anchor monitoring
 	vscode.workspace.onDidChangeTextDocument(event => {
 		const doc = event.document;
 		if (doc.languageId === 'latex' && doc.getText().includes('%ANCHOR%')) {
@@ -34,14 +34,14 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 	});
 
-	// 修改：初始化PDF同步系统时监控日志文件
+	// Modified: Initialize PDF sync system to monitor log files
 	vscode.workspace.onDidSaveTextDocument(doc => {
 		if (doc.languageId === 'latex') {
 			setupPdfSyncSystem(doc);
 		}
 	});
 
-	// 修改：初始化已打开文档时设置日志监控
+	// Modified: Set up log monitoring when initializing open documents
 	vscode.workspace.textDocuments.forEach(doc => {
 		if (doc.languageId === 'latex') {
 			if (doc.getText().includes('%ANCHOR%')) setupAnchorSystem(doc);
@@ -51,21 +51,21 @@ export function activate(context: vscode.ExtensionContext) {
 
 	context.subscriptions.push(
 		vscode.commands.registerCommand('pdfDiff.activate', () => {
-			vscode.window.showInformationMessage('PDF Diff系统已激活!');
+			vscode.window.showInformationMessage('PDF Diff system activated!');
 		})
 	);
 }
 
-// ================= 锚点监控系统 =================
+// ================= Anchor Monitoring System =================
 function setupAnchorSystem(document: vscode.TextDocument) {
 	const texPath = document.uri.fsPath;
 	const drawPdf = getDrawPdfPath(texPath);
 
-	// 初始化Python脚本路径
+	// Initialize Python script path
 	const pythonScript = getPythonScriptPath();
 	if (!pythonScript) return;
 
-	// 设置PDF差异监控
+	// Set up PDF diff monitoring
 	if (!anchorWatchers.has(drawPdf)) {
 		const watcher = createSmartPdfWatcher(
 			drawPdf,
@@ -77,13 +77,13 @@ function setupAnchorSystem(document: vscode.TextDocument) {
 	}
 }
 
-// ================ 修改后的PDF同步系统 ================
+// ================= Modified PDF Sync System =================
 function setupPdfSyncSystem(document: vscode.TextDocument) {
 	const texPath = document.uri.fsPath;
 	const logPath = getLogFilePath(texPath);
 	const pdfPath = getMainPdfPath(texPath);
 
-	// 修改：监控日志文件而非PDF文件
+	// Modified: Monitor log files instead of PDF files
 	if (!logSyncWatchers.has(logPath)) {
 		const watcher = createSmartPdfWatcher(
 			logPath,
@@ -95,31 +95,29 @@ function setupPdfSyncSystem(document: vscode.TextDocument) {
 	}
 }
 
-
-// 新增：处理日志文件变化的函数
+// New: Handle log file changes
 async function handleLogChange(pdfPath: string, logPath: string) {
-	// 等待确保日志写入完成
+	// Wait to ensure log writing completes
 	await delay(config.logCheckDelay);
 
-	// 增加稳定性检查
+	// Add stability check
 	const isStable = await checkFileStable(logPath, 3, 200);
 	if (!isStable) {
-		console.log(`[SYNC] 忽略不稳定日志文件: ${path.basename(logPath)}`);
+		console.log(`[SYNC] Ignoring unstable log file: ${path.basename(logPath)}`);
 		return;
 	}
 
-	// 执行PDF同步
+	// Execute PDF sync
 	try {
 		await syncPdfFiles(pdfPath);
-		console.log(`[SYNC] 由日志触发的PDF同步: ${path.basename(pdfPath)}`);
+		console.log(`[SYNC] PDF sync triggered by log: ${path.basename(pdfPath)}`);
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : String(error);
-		vscode.window.showErrorMessage(`PDF同步失败: ${errorMessage}`);
+		vscode.window.showErrorMessage(`PDF sync failed: ${errorMessage}`);
 	}
 }
 
-
-// ================= 核心功能 =================
+// ================= Core Functionality =================
 async function handlePdfDifference(texPath: string, drawPdf: string) {
 	const pythonScript = getPythonScriptPath();
 	if (!pythonScript) return;
@@ -128,7 +126,7 @@ async function handlePdfDifference(texPath: string, drawPdf: string) {
 	const imagesDir = path.join(path.dirname(texPath), 'images');
 
 	try {
-		// 生成差异图像
+		// Generate diff images
 		const images = await executePythonDiff(
 			pythonScript,
 			drawPdf,
@@ -136,18 +134,18 @@ async function handlePdfDifference(texPath: string, drawPdf: string) {
 			imagesDir
 		);
 
-		// 更新LaTeX文档
+		// Update LaTeX document
 		await updateLatexDocument(texPath, images);
 
 		vscode.window.showInformationMessage(
-			`成功插入 ${images.length} 张差异图`
+			`Successfully inserted ${images.length} diff images`
 		);
 	} catch (error) {
-		vscode.window.showErrorMessage(`差异生成失败: ${error}`);
+		vscode.window.showErrorMessage(`Diff generation failed: ${error}`);
 	}
 }
 
-// ================= 工具函数 =================
+// ================= Utility Functions =================
 function createSmartPdfWatcher(
 	pdfPath: string,
 	callback: () => Promise<void>,
@@ -172,26 +170,26 @@ function createSmartPdfWatcher(
 	return watcher;
 }
 
-// 修改：保持原有同步逻辑但增加PDF存在性检查
+// Modified: Keep original sync logic but add PDF existence check
 async function syncPdfFiles(pdfPath: string) {
 	const drawPdf = getDrawPdfPath(pdfPath);
 
-	// 新增：检查主PDF是否存在
+	// New: Check if main PDF exists
 	if (!fs.existsSync(pdfPath)) {
-		throw new Error(`主PDF文件不存在: ${path.basename(pdfPath)}`);
+		throw new Error(`Main PDF file not found: ${path.basename(pdfPath)}`);
 	}
 
-	// 保持原有的稳定性检查和同步逻辑
+	// Keep original stability check and sync logic
 	const isStable = await checkFileStable(pdfPath, 3, 500);
 	if (!isStable) {
-		throw new Error(`PDF文件未稳定: ${path.basename(pdfPath)}`);
+		throw new Error(`PDF file not stable: ${path.basename(pdfPath)}`);
 	}
 
-	// 原有重试逻辑保持不变
+	// Keep original retry logic
 	for (let i = 0; i < config.maxRetries; i++) {
 		try {
 			await fs.promises.copyFile(pdfPath, drawPdf);
-			console.log(`[SYNC] 同步成功: ${path.basename(drawPdf)}`);
+			console.log(`[SYNC] Sync successful: ${path.basename(drawPdf)}`);
 			return;
 		} catch (error) {
 			if (i === config.maxRetries - 1) throw error;
@@ -200,7 +198,7 @@ async function syncPdfFiles(pdfPath: string) {
 	}
 }
 
-// 新增文件稳定检测函数
+// New: File stability check function
 async function checkFileStable(filePath: string, checkCount = 3, interval = 200): Promise<boolean> {
 	let lastSize = 0;
 	let lastMtime = 0;
@@ -228,7 +226,7 @@ async function checkFileStable(filePath: string, checkCount = 3, interval = 200)
 async function atomicFileCopy(src: string, dest: string) {
 	for (let i = 0; i < config.maxRetries; i++) {
 		try {
-			// 直接覆盖目标文件，增加可靠性
+			// Directly overwrite target file for reliability
 			await fs.promises.copyFile(src, dest);
 			return;
 		} catch (error) {
@@ -238,14 +236,13 @@ async function atomicFileCopy(src: string, dest: string) {
 	}
 }
 
-
-// ================= Python相关 =================
+// ================= Python Related =================
 function getPythonScriptPath(): string | null {
 	const scriptPath = extensionContext.asAbsolutePath('compare_pdfs.py');
 
 	if (!fs.existsSync(scriptPath)) {
 		vscode.window.showErrorMessage(
-			`Python脚本缺失: ${scriptPath}\n请确认插件安装完整`
+			`Python script missing: ${scriptPath}\nPlease confirm plugin installation`
 		);
 		return null;
 	}
@@ -275,17 +272,17 @@ async function executePythonDiff(
 				.filter(line => line.endsWith('.png'));
 
 			images.length > 0 ? resolve(images) :
-				reject('未检测到有效差异');
+				reject('No valid differences detected');
 		});
 	});
 }
 
-// ============== LaTeX文档更新 ==============
+// ================= LaTeX Document Update =================
 async function updateLatexDocument(texPath: string, images: string[]) {
 	const doc = await vscode.workspace.openTextDocument(texPath);
 	const editor = await vscode.window.showTextDocument(doc);
 
-	// 查找所有锚点位置
+	// Find all anchor positions
 	const anchorPositions: vscode.Position[] = [];
 	const anchorRegex = /%ANCHOR%/g;
 
@@ -296,14 +293,14 @@ async function updateLatexDocument(texPath: string, images: string[]) {
 		anchorPositions.push(pos);
 	}
 
-	// 生成替换内容
+	// Generate replacement content
 	const dir = path.dirname(texPath);
 	const figures = images.map(img => {
 		const relPath = path.relative(dir, img).replace(/\\/g, '/');
 		return `\\begin{figure}[H]\n  \\includegraphics[width=\\textwidth]{${relPath}}\n\\end{figure}`;
 	}).join('\n\n');
 
-	// 执行批量替换
+	// Perform batch replacement
 	await editor.edit(editBuilder => {
 		anchorPositions.forEach(pos => {
 			const range = new vscode.Range(
@@ -314,7 +311,7 @@ async function updateLatexDocument(texPath: string, images: string[]) {
 		});
 	});
 
-	// 删除已使用的锚点
+	// Remove used anchors
 	const newText = doc.getText().replace(/%ANCHOR%/g, '');
 	const fullRange = new vscode.Range(
 		doc.positionAt(0),
@@ -326,7 +323,7 @@ async function updateLatexDocument(texPath: string, images: string[]) {
 	await vscode.workspace.applyEdit(edit);
 }
 
-// ============== 辅助工具 ==============
+// ================= Helper Tools =================
 function getMainPdfPath(texPath: string): string {
 	return texPath.replace(/\.tex$/i, '.pdf');
 }
@@ -339,8 +336,8 @@ function delay(ms: number) {
 	return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// 修改：停用时清理正确的监视器
+// Modified: Clean up correct watchers when deactivating
 export function deactivate() {
 	anchorWatchers.forEach(w => w.dispose());
-	logSyncWatchers.forEach(w => w.dispose());  // 修改为清理logSyncWatchers
+	logSyncWatchers.forEach(w => w.dispose());  // Modified to clean logSyncWatchers
 }
