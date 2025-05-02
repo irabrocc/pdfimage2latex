@@ -5,7 +5,8 @@ import { exec } from 'child_process';
 
 // 全局状态管理
 const anchorWatchers = new Map<string, vscode.FileSystemWatcher>();
-const pdfSyncWatchers = new Map<string, vscode.FileSystemWatcher>();
+// 修改：重命名同步监视器集合
+const logSyncWatchers = new Map<string, vscode.FileSystemWatcher>();
 let extensionContext: vscode.ExtensionContext;
 
 // 配置参数
@@ -13,8 +14,14 @@ const config = {
 	pythonPath: 'python', // 可扩展为从配置读取
 	dpi: 300,
 	maxRetries: 3,
-	cooldown: 1000
+	cooldown: 1000,
+	logCheckDelay: 500
 };
+
+// 新增：获取日志文件路径
+function getLogFilePath(texPath: string): string {
+	return texPath.replace(/\.tex$/i, '.log');
+}
 
 export function activate(context: vscode.ExtensionContext) {
 	extensionContext = context;
@@ -27,14 +34,14 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 	});
 
-	// 初始化PDF同步系统
+	// 修改：初始化PDF同步系统时监控日志文件
 	vscode.workspace.onDidSaveTextDocument(doc => {
 		if (doc.languageId === 'latex') {
 			setupPdfSyncSystem(doc);
 		}
 	});
 
-	// 初始化已打开文档
+	// 修改：初始化已打开文档时设置日志监控
 	vscode.workspace.textDocuments.forEach(doc => {
 		if (doc.languageId === 'latex') {
 			if (doc.getText().includes('%ANCHOR%')) setupAnchorSystem(doc);
@@ -70,20 +77,47 @@ function setupAnchorSystem(document: vscode.TextDocument) {
 	}
 }
 
-// ================ PDF同步系统 ================
+// ================ 修改后的PDF同步系统 ================
 function setupPdfSyncSystem(document: vscode.TextDocument) {
-	const pdfPath = getMainPdfPath(document.fileName);
+	const texPath = document.uri.fsPath;
+	const logPath = getLogFilePath(texPath);
+	const pdfPath = getMainPdfPath(texPath);
 
-	if (!pdfSyncWatchers.has(pdfPath)) {
+	// 修改：监控日志文件而非PDF文件
+	if (!logSyncWatchers.has(logPath)) {
 		const watcher = createSmartPdfWatcher(
-			pdfPath,
-			() => syncPdfFiles(pdfPath),
+			logPath,
+			() => handleLogChange(pdfPath, logPath),
 			config.cooldown
 		);
-		pdfSyncWatchers.set(pdfPath, watcher);
+		logSyncWatchers.set(logPath, watcher);
 		extensionContext.subscriptions.push(watcher);
 	}
 }
+
+
+// 新增：处理日志文件变化的函数
+async function handleLogChange(pdfPath: string, logPath: string) {
+	// 等待确保日志写入完成
+	await delay(config.logCheckDelay);
+
+	// 增加稳定性检查
+	const isStable = await checkFileStable(logPath, 3, 200);
+	if (!isStable) {
+		console.log(`[SYNC] 忽略不稳定日志文件: ${path.basename(logPath)}`);
+		return;
+	}
+
+	// 执行PDF同步
+	try {
+		await syncPdfFiles(pdfPath);
+		console.log(`[SYNC] 由日志触发的PDF同步: ${path.basename(pdfPath)}`);
+	} catch (error) {
+		const errorMessage = error instanceof Error ? error.message : String(error);
+		vscode.window.showErrorMessage(`PDF同步失败: ${errorMessage}`);
+	}
+}
+
 
 // ================= 核心功能 =================
 async function handlePdfDifference(texPath: string, drawPdf: string) {
@@ -138,14 +172,19 @@ function createSmartPdfWatcher(
 	return watcher;
 }
 
+// 修改：保持原有同步逻辑但增加PDF存在性检查
 async function syncPdfFiles(pdfPath: string) {
 	const drawPdf = getDrawPdfPath(pdfPath);
 
-	// 增加文件稳定化检测
+	// 新增：检查主PDF是否存在
+	if (!fs.existsSync(pdfPath)) {
+		throw new Error(`主PDF文件不存在: ${path.basename(pdfPath)}`);
+	}
+
+	// 保持原有的稳定性检查和同步逻辑
 	const isStable = await checkFileStable(pdfPath, 3, 500);
 	if (!isStable) {
-		console.error(`[SYNC] 文件未稳定: ${pdfPath}`);
-		return;
+		throw new Error(`PDF文件未稳定: ${path.basename(pdfPath)}`);
 	}
 
 	// 原有重试逻辑保持不变
@@ -300,7 +339,8 @@ function delay(ms: number) {
 	return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+// 修改：停用时清理正确的监视器
 export function deactivate() {
 	anchorWatchers.forEach(w => w.dispose());
-	pdfSyncWatchers.forEach(w => w.dispose());
+	logSyncWatchers.forEach(w => w.dispose());  // 修改为清理logSyncWatchers
 }
