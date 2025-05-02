@@ -1,6 +1,6 @@
 # PDF Diff Visualizer for LaTeX
 
-A VS Code extension that automatically detects visual differences between PDF versions of LaTeX documents and generates annotated comparison images directly in your project.
+This extension is developed with the help of an LLM. This readme.md file has the general idea of the extension while some data might be wrong. A VS Code extension that automatically detects visual differences between PDF versions of LaTeX documents and generates annotated comparison images directly in your project.
 
 ## Features
 
@@ -19,7 +19,6 @@ A VS Code extension that automatically detects visual differences between PDF ve
 - File stability detection prevents premature processing
 - Configurable cooldown period between checks
 
-![Workflow Demo](images/workflow.gif)
 
 ## Requirements
 
