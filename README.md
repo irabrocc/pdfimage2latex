@@ -1,71 +1,87 @@
-# pdfimage2latex README
+# PDF Diff Visualizer for LaTeX
 
-This is the README for your extension "pdfimage2latex". After writing up a brief description, we recommend including the following sections.
+A VS Code extension that automatically detects visual differences between PDF versions of LaTeX documents and generates annotated comparison images directly in your project.
 
 ## Features
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+### 1. Smart PDF Comparison
+- Automatically detects changes between `yourfile.pdf` and `yourfile_draw.pdf`
+- Generates high-resolution difference images (default 300 DPI)
+- Preserves document structure by analyzing text boundaries
 
-For example if there is an image subfolder under your extension project workspace:
+### 2. LaTeX Integration
+- Auto-inserts comparison figures at `%ANCHOR%` markers
+- Maintains relative paths for cross-platform compatibility
+- Supports multi-page document comparison
 
-\!\[feature X\]\(images/feature-x.png\)
+### 3. Intelligent Monitoring
+- Real-time watching of both `.tex` and `.log` files
+- File stability detection prevents premature processing
+- Configurable cooldown period between checks
 
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+![Workflow Demo](images/workflow.gif)
 
 ## Requirements
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+- **Python 3.8+** with these packages:
+  ```bash
+  pip install pymupdf opencv-python
+  ```
+- LaTeX distribution (TeX Live/MikTeX)
+- VS Code 1.75+
 
 ## Extension Settings
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
+Configure in `settings.json`:
+```json
+{
+  "pdfDiff.pythonPath": "python",
+  "pdfDiff.dpi": 300,
+  "pdfDiff.maxRetries": 3,
+  "pdfDiff.cooldownMs": 1000
+}
+```
 
-For example:
+## Usage
 
-This extension contributes the following settings:
-
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
+1. Add `%ANCHOR%` markers where you want difference images inserted
+2. Save your `.tex` file to trigger comparison
+3. View generated images in `./images/` directory
 
 ## Known Issues
 
-Calling out known issues can help limit users opening duplicate issues against your extension.
+- Large PDFs (>50MB) may require increased memory
+- Complex layouts with overlapping elements may need manual adjustment
+- First-run Python package installation may require VS Code restart
 
 ## Release Notes
 
-Users appreciate release notes as you update your extension.
+### 1.1.0
+- Added log file monitoring for more reliable PDF detection
+- Implemented file stability checks
+- Improved error handling
 
 ### 1.0.0
-
-Initial release of ...
-
-### 1.0.1
-
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
+- Initial release with core comparison functionality
 
 ---
 
-## Following extension guidelines
+## Development Guide
 
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
+### Building
+```bash
+npm install -g @vscode/vsce
+vsce package
+```
 
-* [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
+### Testing
+1. Install the `.vsix` file via VS Code Extensions view
+2. Open a LaTeX project with test PDFs
 
-## Working with Markdown
+---
 
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
+**Pro Tip**: Use `Ctrl+Shift+P` → `Reload Window` after configuration changes.
 
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
+For documentation on the comparison algorithm, see [compare_pdfs.py](compare_pdfs.py).
 
-## For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
-
-**Enjoy!**
+This extension follows the [VS Code Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines).
