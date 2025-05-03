@@ -29,7 +29,7 @@ export function activate(context: vscode.ExtensionContext) {
 	// Initialize anchor monitoring
 	vscode.workspace.onDidChangeTextDocument(event => {
 		const doc = event.document;
-		if (doc.languageId === 'latex' && doc.getText().includes('%ANCHOR%')) {
+		if (doc.languageId === 'latex') {
 			setupAnchorSystem(doc);
 		}
 	});
@@ -60,6 +60,16 @@ export function activate(context: vscode.ExtensionContext) {
 function setupAnchorSystem(document: vscode.TextDocument) {
 	const texPath = document.uri.fsPath;
 	const drawPdf = getDrawPdfPath(texPath);
+	const hasAnchor = document.getText().includes('%ANCHOR%');
+
+	const existingWatcher = anchorWatchers.get(drawPdf);
+	if(!hasAnchor && existingWatcher) {
+		existingWatcher.dispose();
+		anchorWatchers.delete(drawPdf);
+		return;
+	}
+
+	if (!hasAnchor) return; 
 
 	// Initialize Python script path
 	const pythonScript = getPythonScriptPath();
@@ -291,6 +301,11 @@ async function updateLatexDocument(texPath: string, images: string[]) {
 	while ((match = anchorRegex.exec(text)) !== null) {
 		const pos = doc.positionAt(match.index);
 		anchorPositions.push(pos);
+	}
+
+	if (anchorPositions.length === 0) {
+		vscode.window.showErrorMessage('No %ANCHOR% found in the document');
+		throw new Error('No %ANCHOR% found');
 	}
 
 	// Generate replacement content
