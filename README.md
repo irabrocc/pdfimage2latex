@@ -1,6 +1,8 @@
 # PDF Diff Visualizer for LaTeX
 
-This extension is developed with the help of an LLM. This readme.md file has the general idea of the extension while some data might be wrong. A VS Code extension that automatically detects visual differences between PDF versions of LaTeX documents and generates annotated comparison images directly in your project.
+This extension is developed with the help of LLMs. This readme.md file has the general idea of the extension while some data might be wrong. This is a VS Code extension that automatically detects visual differences between PDF versions of LaTeX documents and generates annotated comparison images directly in your project.
+![EffectDisplay](https://github.com/irabrocc/pdfimage2latex/blob/master/EffectDisplay.gif)
+
 
 ## Features
 
@@ -10,7 +12,7 @@ This extension is developed with the help of an LLM. This readme.md file has the
 - Preserves document structure by analyzing text boundaries
 
 ### 2. LaTeX Integration
-- Auto-inserts comparison figures at `%ANCHOR%` markers
+- Auto-inserts comparison figures at `%ANCHOR%` markers in the tex file
 - Maintains relative paths for cross-platform compatibility
 - Supports multi-page document comparison
 
@@ -43,20 +45,22 @@ Configure in `settings.json`:
 
 ## Usage
 
-1. Add `%ANCHOR%` markers where you want difference images inserted
+1. Add `%ANCHOR%` markers in the tex file where you want difference images inserted
 2. Save your `.tex` file to trigger comparison
-3. View generated images in `./images/` directory
+3. Draw on the `_draw.pdf` file and save it   
+4. View generated images in `./images/` directory
+5. Compile the tex file to visualize `.pdf` with images inserted and to synchronize `.pdf` with `_draw.pdf` 
 
 ## Known Issues
 
-- Large PDFs (>50MB) may require increased memory
 - Complex layouts with overlapping elements may need manual adjustment
 - First-run Python package installation may require VS Code restart
+- If you want to modified the images inserted in the tex file, then the area of modifying should cover the original image in pdf 
 
 ## Release Notes
 
 ### 1.1.0
-- Added log file monitoring for more reliable PDF detection
+- Added log file monitoring for more reliable compiling detection
 - Implemented file stability checks
 - Improved error handling
 
