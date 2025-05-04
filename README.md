@@ -45,11 +45,12 @@ Configure in `settings.json`:
 
 ## Usage
 
-1. Add `%ANCHOR%` markers in the tex file where you want difference images inserted
-2. Save your `.tex` file to trigger comparison
-3. Draw on the `_draw.pdf` file and save it   
-4. View generated images in `./images/` directory
-5. Compile the tex file to visualize `.pdf` with images inserted and to synchronize `.pdf` with `_draw.pdf` 
+1. Generate the vsix file fowllowing the guid and install it in vscode
+2. Add `%ANCHOR%` markers in the tex file where you want difference images inserted
+3. Save your `.tex` file to trigger comparison
+4. Draw on the `_draw.pdf` file and save it   
+5. View generated images in `./images/` directory
+6. Compile the tex file to visualize `.pdf` with images inserted and to synchronize `.pdf` with `_draw.pdf` 
 
 ## Known Issues
 
